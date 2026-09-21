@@ -1,5 +1,5 @@
 @muladd begin
-#! format: noindent
+#! format: noindent 
 
 function init_auxiliary_node_variables!(aux_values, mesh::DGMultiMesh,
                                         equations::AbstractCovariantEquations{NDIMS,
@@ -196,6 +196,74 @@ end
 
     return SMatrix{2, 2}(dxedr[1], dxedr[2],
                          dxeds[1], dxeds[2])
+end
+
+# Inverse of the quadratic stretching function f_s(y) = beta * y^2 + (1 - beta) * y
+# from Baldauf (2021), Sec. 5.2
+function stretching_function_inverse(phi, beta)
+
+    if beta == 0
+        return phi
+    end
+
+    return (-(1-beta) + sqrt((1-beta)^2 + (4 * beta * phi))) / (2 * beta)
+
+end
+
+# Inverse of the terrain-follwing mapping, Baldauf (2021), Eq. (57): 
+# maps a point in physical coodinates back to terrain-following coordinates
+# Requires h(x1) < H_top and a strictly monotonic stretching function
+function terrain_height_mapping_inverse(x_prime, H_top, h, f_s_inv)
+
+    x1 = x_prime[1]
+    phi = (x_prime[2] - h(x1)) / (H_top - h(x1))
+
+    x3 = f_s_inv(phi) * H_top
+
+    return SVector{2}(x1, x3)
+
+end
+
+# Jacobian of the terrain-following mapping, Baldauf (2021), Eq. (57),
+# with respect to the terrain_followng coordinates (x1, x3) 
+function terrain_height_jacobian(x1, x3, H_top, h, f_s)
+
+    dx1dx1 = 1.0
+    dx1dx3 = 0.0
+    dx3dx1 = derivative(h, x1) * (1 - f_s(x3/H_top))
+    dx3dx3 = (H_top - h(x1)) * derivative(f_s, (x3/H_top)) * (1/H_top)
+
+    return SMatrix{2, 2}(dx1dx1, dx3dx1,
+                         dx1dx3, dx3dx3)
+
+end
+
+
+@inline function calc_basis_covariant(vertices, r, s, radius, dg::DGMulti{2, <:Quad}, 
+                                        metric_terms::MetricTermsCovariant{<:TerrainFollowingManifold},
+                                        ::GlobalCartesianCoordinates)
+
+    v1, v2, v3, v4 = vertices
+    (; h, H_top, f_s, f_s_inv) = metric_terms.manifold
+
+    # Horizontal element boundaries (unchanged by the mapping)
+    x1_a = v1[1]
+    x1_b = v2[1]
+
+    # Vertical element boundaries in terrain-following coordinates
+    # recovered from the physical vertices via the inverse mapping
+    v1_tf = terrain_height_mapping_inverse(v1, H_top, h, f_s_inv)
+    v4_tf = terrain_height_mapping_inverse(v4, H_top, h, f_s_inv)
+    x3_a = v1_tf[2]
+    x3_b = v4_tf[2]
+
+    # Affine map from reference coordinates (r, s) to terrain-following coordinates
+    x1 = (r + 1) * (x1_b - x1_a)  / 2 + x1_a
+    x3 = (s + 1)* (x3_b - x3_a) / 2 + x3_a
+
+    # Apply the chain rule to the composite mapping (r, s) -> (x1, x3) -> (x1', x3')
+    return terrain_height_jacobian(x1, x3, H_top, h, f_s) * SMatrix{2, 2}((x1_b - x1_a) / 2,  0.0,
+                                                                           0.0, (x3_b - x3_a) / 2)
 end
 
 # Calculate the covariant metric tensor components G₁₁, G₁₂ (= G₂₁), and G₂₂ and return in

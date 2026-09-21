@@ -49,6 +49,27 @@ struct MetricTermsCovariant{Manifold, ChristoffelSymbols}
 end
 struct FlatManifold end
 
+
+"""
+    TerrainFollowingManifold(h, H_top, f_s, f_s_inv)
+
+Flat manifold in the x-z plane with terrain-following coordinates following Baldauf (2021), Eq. (57),
+with orography `h`, model top `H_top`, vertical stretching function `f_s`
+and its inverse `f_s_inv`.
+
+##Reference
+Baldauf, M. (2021). A horizontally explicit, vertically implicit (HEVI) discontinuous
+Galerkin scheme for the 2-dimensional Euler and
+Navier-Stokes equations using terrain-following coordinates. Journal of Computational Physics 446
+[DOI: 10.1016/j.jcp.2021.110635](https://doi.org/10.1016/j.jcp.2021.110635)
+"""
+struct TerrainFollowingManifold{Orography, Stretching, StretchingInverse}
+    h::Orography
+    H_top::Float64
+    f_s::Stretching
+    f_s_inv::StretchingInverse
+end
+
 struct SphericalManifold end
 
 @doc raw"""

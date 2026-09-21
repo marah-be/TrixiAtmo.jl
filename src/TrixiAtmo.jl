@@ -71,7 +71,8 @@ export flux_chandrashekar, FluxLMARS
 export flux_nonconservative_zeros, flux_nonconservative_ec,
        flux_nonconservative_surface_simplified, source_terms_geometric_coriolis,
        source_terms_coriolis, source_terms_coriolis_lagrange_multiplier,
-       source_terms_gravity, flux_tec, flux_etec, flux_nonconservative_souza_etal,
+       source_terms_gravity, source_terms_gravity_terrain_following, 
+       flux_tec, flux_etec, flux_nonconservative_souza_etal,
        flux_nonconservative_artiano_etal,
        flux_nonconservative_waruszewski_etal, flux_zero,
        flux_ec_rain, flux_LMARS, flux_nonconservative_es, flux_conservative_es,
@@ -85,7 +86,7 @@ export cons2prim_and_vorticity, contravariant2global, contravariant_cons2global_
 
 export P4estMeshCubedSphere2D, P4estMeshQuadIcosahedron2D, DGMultiMeshTriIcosahedron2D,
        MetricTermsCrossProduct, MetricTermsInvariantCurl, MetricTermsCovariant,
-       SphericalManifold, FlatManifold,
+       SphericalManifold, FlatManifold, TerrainFollowingManifold,
        ChristoffelSymbolsAutodiff, ChristoffelSymbolsCollocationDerivative
 
 export EARTH_RADIUS, EARTH_GRAVITATIONAL_ACCELERATION,

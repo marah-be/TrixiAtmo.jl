@@ -296,4 +296,21 @@ function source_terms_gravity(u, x, t, aux_vars,
     dPhi_dz = -equations.gravity * sqrt(Gcov[2, 2])
     return SVector(0.0, 0.0, rho * dPhi_dz * Gcon[2, 2], 0.0)
 end
+
+# Gravity source term for terrain-following coordinates
+# In contrast to `source_terms_gravity`. this accounts for coordinate lines that are not vertical.
+function source_terms_gravity_terrain_following(u, x, t, aux_vars,
+                              equations::CovariantEulerEnergyEquations2D)
+    rho = u[1]
+
+    k = basis_contravariant(aux_vars, equations)
+    # k^1 = 0 since the horizontal coordinate is unchanged (x1' = x1)
+    k2 = k[2, 2]
+    # Contravariant component of the gravity source term, Baldauf 2.2.1
+    gravity_term = -equations.gravity * k2
+
+    return SVector(0.0, 0.0, rho * gravity_term , 0.0)
+end
 end # @muladd
+
+
