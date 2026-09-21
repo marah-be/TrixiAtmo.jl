@@ -1,4 +1,5 @@
 include("p4est_cubed_sphere.jl")
 include("p4est_icosahedron_quads.jl")
 include("dgmulti_icosahedron_tri.jl")
+include("dgmulti_terrain_following_quad.jl")
 include("p4est_cubed_sphere_topography.jl")
