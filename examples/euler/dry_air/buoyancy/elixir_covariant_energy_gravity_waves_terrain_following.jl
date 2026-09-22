@@ -1,3 +1,6 @@
+# Currently set up as a rest-state test (v1 = 0, DeltaT = 0) over a 10m Schär schaer_mountain
+# to check hydrostatic balance with terrain-following-coordinates
+
 ###############################################################################
 # DGSEM for the covariant Euler equations in total energy formulation
 ###############################################################################
