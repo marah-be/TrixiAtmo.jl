@@ -84,6 +84,53 @@ end
     end
 end
 
+@inline function Trixi.local_flux_differencing!(du_local, u_local, aux_local,
+                                         element_index,
+                                          have_nonconservative_terms::True, volume_flux,
+                                          has_sparse_operators::True, mesh,
+                                          equations::AbstractCovariantEquations{NDIMS},
+                                          dg, cache) where {NDIMS}
+    @unpack Qrst_skew = cache
+    flux_conservative, flux_nonconservative = volume_flux
+    for dim in 1:NDIMS
+        if dim == 1
+            normal_directions = SVector{2}([1, 0])
+        elseif dim == 2
+            normal_directions = SVector{2}([0, 1])
+        end
+        Q_skew = Qrst_skew[dim]
+        A_base, row_ids, rows, vals = Trixi.sparse_operator_data(Q_skew)
+        for i in row_ids
+            u_i = u_local[i]
+            aux_i = aux_local[i]
+            du_i = du_local[i]
+            for id in Trixi.nzrange(A_base, i)
+                j = rows[id]
+                A_ij = vals[id]
+                u_j = u_local[j]
+                aux_j = aux_local[j]
+                normal_direction_ij = Trixi.get_normal_direction(normal_directions, i, j)
+                # Conservative part: exploit skew-symmetry (calculate upper triangular part only).
+                if j > i
+                    AF_ij = 2 * A_ij *
+                            flux_conservative(u_i, u_j, aux_i, aux_j, normal_direction_ij, equations)
+                    du_i = du_i + AF_ij
+                    du_local[j] = du_local[j] - AF_ij # Due to skew-symmetry
+                end
+                # Non-conservative terms use the full (non-symmetric) loop.
+                # The 0.5f0 factor on the normal direction is necessary for the nonconservative
+                # fluxes based on the interpretation of global SBP operators.
+                # See also `calc_interface_flux!` with `have_nonconservative_terms::True`
+                # in src/solvers/dgsem_tree/dg_1d.jl
+                f_nc = flux_nonconservative(u_i, u_j, aux_i, aux_j, 0.5f0 * normal_direction_ij,
+                                            equations)
+                du_i = du_i + 2 * A_ij * f_nc
+            end
+            du_local[i] = du_i
+        end
+    end
+end
+
 @inline function Trixi.volume_integral_kernel!(du, u, element, mesh::DGMultiMesh,
                                                have_nonconservative_terms,
                                                equations::AbstractCovariantEquations,
